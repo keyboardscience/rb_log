@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require 'syslog'
+require 'optparse'
+require 'ostruct'
+
+class RbLogOptions
+
+  def self.parse(args)
+    options = OpenStruct.new
+    options.tag = ""
+    options.facility = ""
+
+    opt_parser = OptionParser.new do |opts|
+      opts.banner = "Usage: rblog [options]"
+      opts.separator ""
+      opts.separator "Specific options:"
+
+      opts.on("-t", "--tag TAG", "Specify a tag for log messages") do |tag|
+        options.tag = tag
+      end
+
+      opts.on("-f", "--facility SYSLOG_FACILITY", "Specify a logging facility to use") do |fac|
+        options.facility = fac
+      end
+
+      opts.on_tail("-h", "--help", "Show this message") do
+        puts opts
+        exit
+      end
+
+      opts.on_tail("--version", "Show version") do
+        puts ::Version.join('.')
+        exit
+      end
+    end # end opt_parser
+    opt_parser.parse!(args)
+    options
+  end # end parse()
+
+end # End class RbLog
+
+class RbLog
+
+  def initialize(tag, facility)
+    @syslog = syslog(tag, facility_map[facility.to_sym])
+    @syslog
+  end # End #initialize
+
+  def syslog(tag, facility)
+    facility = Syslog::LOG_DAEMON if facility.nil?
+    Syslog.open(tag, Syslog::LOG_PID && Syslog::LOG_NOWAIT, facility)
+  end # End #syslog
+
+  def log(msg)
+    @syslog.log(Syslog::LOG_INFO, msg)
+  end # End #log
+
+  def facility_map
+    {
+      auth: Syslog::LOG_AUTH,
+      authpriv: Syslog::LOG_AUTHPRIV,
+      cron: Syslog::LOG_CRON,
+      daemon: Syslog::LOG_DAEMON,
+      syslog: Syslog::LOG_SYSLOG,
+      user: Syslog::LOG_USER,
+      local1: Syslog::LOG_LOCAL1,
+      local2: Syslog::LOG_LOCAL2,
+      local3: Syslog::LOG_LOCAL3,
+      local4: Syslog::LOG_LOCAL4,
+      local5: Syslog::LOG_LOCAL5,
+      local6: Syslog::LOG_LOCAL6,
+      local7: Syslog::LOG_LOCAL7
+    }
+  end
+
+end # End class RbLog
+
+begin
+  options = RbLogOptions.parse(ARGV)
+  logger = RbLog.new(options.tag, options.facility)
+  STDIN.each_line do |li|
+    logger.log(li)
+  end
+rescue OptionParser::ParseError
+  puts "Something done gone wrong"
+  exit
+end
