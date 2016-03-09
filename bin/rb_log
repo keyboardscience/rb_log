@@ -12,7 +12,7 @@ class RbLogOptions
     options.facility = ""
 
     opt_parser = OptionParser.new do |opts|
-      opts.banner = "Usage: rblog [options]"
+      opts.banner = "Usage: rb_log [options]"
       opts.separator ""
       opts.separator "Specific options:"
 
@@ -80,10 +80,10 @@ begin
   options = RbLogOptions.parse(ARGV)
   logger = RbLog.new(options.tag, options.facility)
   STDIN.each_line do |li|
-    puts li
     logger.log(li)
   end
-rescue OptionParser::ParseError
+rescue OptionParser::ParseError => e
   puts "Something done gone wrong"
+  puts e.message
   exit
 end
